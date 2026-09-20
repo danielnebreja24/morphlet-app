@@ -1,0 +1,15 @@
+# Build output — regenerate with scripts/install.sh
+build/
+DerivedData/
+
+# Release artifacts — regenerate with scripts/dmg.sh or scripts/package.sh
+dist/
+
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store

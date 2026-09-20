@@ -1,0 +1,61 @@
+Morphlet — installation
+=======================
+
+Morphlet is not yet notarized by Apple, so macOS will refuse to open it the
+first time and tell you it cannot be verified. That message is expected. Here
+is how to get past it, and what you are agreeing to.
+
+1. Drag Morphlet.app into your Applications folder.
+
+2. Open Morphlet. You can double-click it in your Applications folder, or
+   press Command-Space, type "Morphlet", and hit Return — whichever you
+   prefer. macOS will block it either way. Dismiss the dialog, and do not
+   choose "Move to Trash".
+
+3. Open System Settings > Privacy & Security, scroll down to the Security
+   section, and click "Open Anyway" next to the message about Morphlet.
+   Confirm once more when asked.
+
+   (On older versions of macOS you could right-click the app and choose Open.
+   Apple removed that shortcut, so the Settings route above is the one that
+   works now.)
+
+4. Morphlet will ask for Screen Recording permission. It needs this because the
+   fold effect is a live mirror of your desktop — there is no way to bend what
+   is on screen without first being able to see it. Grant it in
+   System Settings > Privacy & Security > Screen Recording, then relaunch.
+
+Morphlet has no Dock icon and opens no window. Look for its glyph in the menu
+bar, at the top right of your screen. To reopen it later, Command-Space and
+type "Morphlet" is usually quickest.
+
+
+What Morphlet does with your screen
+-----------------------------------
+
+Nothing leaves your Mac. Morphlet contains no networking code and writes no
+image data to disk. Captured frames go from the system compositor straight into
+GPU memory and are discarded. The only thing it stores anywhere are six
+preference values: the three effect sliders, the two trigger angles, and
+whether the effect is switched on.
+
+Capture only runs while the lid is on its way down. With the lid open past the
+trigger angle, no capture is running at all.
+
+
+Requirements
+------------
+
+- macOS 14 or later
+- A MacBook whose hinge reports an angle. Most Apple silicon MacBooks do. On
+  hardware that does not, Morphlet still runs, but the effect snaps between
+  flat and folded instead of tracking the lid, and the menu says so.
+
+
+Uninstalling
+------------
+
+Quit Morphlet from its menu, then drag Morphlet.app to the Trash. To remove its
+preferences as well:
+
+    defaults delete com.danielnebreja.morphlet
