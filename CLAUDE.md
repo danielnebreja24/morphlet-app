@@ -97,6 +97,7 @@ user to launch it from Spotlight or Finder.
 
 ## Related projects
 
-`../morphlet-website` is the separate marketing site. A Windows port is planned
-but deferred, and would be a separate codebase — only the design and logic carry
-over, since most Windows laptops report only an open/closed switch.
+The marketing site lives at [morphlet.fujiui.com](https://morphlet.fujiui.com)
+and is a separate repository. A Windows port is planned but deferred, and would
+be a separate codebase — only the design and logic carry over, since most
+Windows laptops report only an open/closed switch.
