@@ -8,12 +8,13 @@ covers the four hardware APIs and why each one is used.
 
 ## Orientation
 
-- Sources: `Morphlet/*.swift` (8 files, ~1200 lines). Start at
+- Sources: `Morphlet/*.swift` (9 files, ~1350 lines). Start at
   `MorphletApp.swift` — `AppCoordinator` wires everything together.
 - The Xcode project is **file-system synchronized**
   (`PBXFileSystemSynchronizedRootGroup`), so adding or renaming a file under
   `Morphlet/` needs no `project.pbxproj` edit.
-- Not a git repository. There is no undo — check before overwriting.
+- `main` is protected: changes land through a pull request. Releases are
+  tagged `v<version>` with the notarized DMG attached as the asset.
 - No tests, no test target. Verification means building and running.
 
 ## Build
@@ -31,14 +32,36 @@ copy. If you instead run `xcodebuild` directly, do that cleanup yourself:
 rm -rf build/Release/Morphlet.app
 ```
 
-Distribution: `scripts/release.sh` (Developer ID + notarization) is the real
-path. `scripts/dmg.sh` and `scripts/package.sh` are the interim ones — signed with
-the local certificate, not notarized, Gatekeeper-rejected by design — used
-until the Apple Developer account exists. **Do not switch these to ad-hoc
-signing.** Ad-hoc leaves the designated requirement empty, so macOS keys the
-app to its binary fingerprint and every update silently revokes the user's
-Gatekeeper approval and Screen Recording grant. Both read `packaging/INSTALL.txt`; edit that file
-rather than either script when the user-facing instructions change.
+Distribution is `scripts/release.sh`: it builds the disk image with Developer
+ID signing, signs the image itself, submits it to Apple, staples the ticket and
+asserts Gatekeeper accepts the result. Everything a user downloads must come
+out of that script.
+
+```bash
+DEVELOPER_ID="Developer ID Application: DANIEL NEBREJA (VF9J56SQPG)" \
+TEAM_ID="VF9J56SQPG" NOTARY_PROFILE="<your-profile>" ./scripts/release.sh
+```
+
+`scripts/dmg.sh` and `scripts/package.sh` build the same artifacts signed with
+the local certificate only — useful for testing the window layout, refused by
+Gatekeeper anywhere else. `release.sh` drives `dmg.sh` through `SIGN_IDENTITY`,
+so the notarized image is byte-for-byte the one that was tested.
+
+Three things that will get a submission rejected, all learned the hard way:
+
+- **`CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO` on Release must stay.** Without
+  it Xcode injects `com.apple.security.get-task-allow` into Release builds too,
+  and Apple refuses anything carrying the debugging entitlement. Debug keeps it
+  so the debugger still attaches.
+- **Never switch to ad-hoc signing.** Ad-hoc leaves the designated requirement
+  empty, so macOS keys the app to its binary fingerprint and every update
+  silently revokes the user's Gatekeeper approval and Screen Recording grant.
+- **`notarytool --wait` exits 0 even when Apple rejects the build.** Read the
+  status back; `release.sh` does, and prints Apple's own reasons. Stapling a
+  rejected submission produces an image that still fails on a stranger's Mac.
+
+Both image scripts read `packaging/INSTALL.txt`; edit that file rather than
+either script when the user-facing instructions change.
 
 `dmg.sh` styles the disk image window by driving Finder through AppleScript.
 Three things about that are easy to break: the window must be **closed** at the
@@ -74,10 +97,16 @@ user to launch it from Spotlight or Finder.
 - **Order matters in `AppCoordinator.refresh()`**: show the overlay *before*
   starting capture, or ScreenCaptureKit cannot exclude the overlay and it
   mirrors itself infinitely.
+- **Never show a window synchronously from `AppCoordinator.init`.** It runs
+  inside SwiftUI's scene evaluation, and presenting an `NSHostingView` there
+  aborts the app at launch. The welcome window is deferred with
+  `DispatchQueue.main.async` for exactly this reason. See ARCHITECTURE.md.
 - **`@AppStorage` will not work in `StyleModel`.** It is a `DynamicProperty` for
   `View` structs and does not drive a class's `objectWillChange`. The manual
   `UserDefaults` writes in `didSet` are deliberate.
 - **Hardened runtime is ON** and must stay on — notarization requires it.
+- **A secure timestamp is required too**, which is why `release.sh` passes
+  `--timestamp`. Apple refuses a signature without one.
 - **`SMAppService` needs a signed app in a stable location.** Launch-at-login
   registration fails from inside `build/`; test it from `/Applications`.
 - Requires Screen Recording permission and a real lid-angle sensor. Behaviour

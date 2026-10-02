@@ -90,9 +90,9 @@ Xcode directly:
   permission prompts attributed to the terminal rather than to itself. Open
   Morphlet from Spotlight or Finder.
 
-Morphlet is not notarized by Apple. A copy you build yourself runs without
-complaint, but one downloaded from the internet is blocked on first launch —
-open **System Settings ▸ Privacy & Security** and click **Open Anyway**.
+Releases are signed with an Apple Developer ID and notarized, so a downloaded
+build opens with no security warning. A copy you build yourself is signed with
+a local certificate instead: fine on your own machine, refused anywhere else.
 
 ## Using it
 
@@ -100,6 +100,10 @@ Morphlet is menu-bar only — no Dock icon and no main window. The menu bar
 popover shows the current lid angle, a master **Enabled** toggle, a **Launch at
 login** toggle, any degraded-mode notices, and links to Settings and Quit.
 Settings holds the three effect sliders and the two trigger angles.
+
+The first time Morphlet opens, a welcome window confirms it is running and
+points to the menu bar. It also shows whether Screen Recording is allowed and
+whether the lid sensor was found. It appears once and not again.
 
 Since there is no Dock icon, pressing ⌘Space and typing "Morphlet" is the
 quickest way to reopen it.
@@ -133,6 +137,7 @@ Morphlet/                 Swift sources and the asset catalog
   MorphletApp.swift         App entry, coordinator, menu bar and Settings UI
   LidAngleSensor.swift      Lid angle, with a coarse fallback
   LoginItem.swift           Launch at login
+  WelcomeWindow.swift       One-time first-launch window
   StyleModel.swift          Persisted preferences; angle to effect progress
   Displays.swift            Built-in panel lookup, clamshell detection
   ScreenCaptureController.swift   Desktop mirror

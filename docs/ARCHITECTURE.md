@@ -58,6 +58,22 @@ menu refreshes it on open for the same reason.
 Registration needs a signed app in a stable location — it fails from inside
 `build/`, so test it from `/Applications`.
 
+### WelcomeWindow
+
+A one-time window on first launch. A menu-bar app shows nothing when it opens:
+no Dock icon, no window. To someone who has just double-clicked it, it looks the
+same as a failed launch. This window says Morphlet is running and where to look,
+and shows live ticks for Screen Recording and the lid sensor.
+
+It is an `NSWindow` hosting a SwiftUI view, owned by `WelcomeWindowController`.
+It is not a SwiftUI `Window` scene, because an accessory app never opens a scene
+on its own. It would wait for an `openWindow` call that nothing in the app is in
+a position to make.
+
+`WelcomeState` stores `hasSeenWelcome` in `UserDefaults` when the window is
+dismissed, not when it opens. If the first launch crashes, the user still sees
+the welcome next time.
+
 ### StyleModel
 
 Six persisted preferences, and `progress(forAngle:)`, which maps degrees to
@@ -94,6 +110,11 @@ Captures the built-in display at native Retina resolution (`display.width ×
 backingScaleFactor`) in Display P3 at 60 fps, and hands each frame's `IOSurface`
 to the renderer. Frames arrive on a background queue; only complete frames carry
 new pixels, so idle repeats are filtered on `SCFrameStatus == .complete`.
+
+`refreshPermission()` re-reads the grant with `CGPreflightScreenCaptureAccess`,
+which never prompts. The menu calls it every time it opens. The user can grant
+Screen Recording in System Settings while Morphlet is running, and a process that
+only checked at launch would go on asking for a permission it already had.
 
 Permission failures are reported through `permissionDenied` rather than thrown,
 because `SCShareableContent.current` and `SCStream.startCapture()` both fail in
@@ -147,6 +168,15 @@ corners round early in the close rather than lagging behind the tilt.
 
 Each of these exists because of a specific visible failure. Changing any one of
 them without understanding the failure will reintroduce it.
+
+**Present the welcome window on the next main-queue turn.** `AppCoordinator`'s
+initializer runs while SwiftUI is still evaluating the app's scenes. Building and
+showing an `NSHostingView` synchronously there starts a second view-graph update
+inside the first. SwiftUI then aborts the process with
+`AG::precondition_failure` in `NSHostingView.layout()`, and the window never
+reaches the screen. To the user this looks like a double-click that does nothing.
+`DispatchQueue.main.async` lets the first update finish. For the same reason,
+read the permission state before building the view, not from its `onAppear`.
 
 **Show the overlay before starting capture.** `AppCoordinator.refresh()` calls
 `overlay.show()` and only then `capture.start(excluding:)`. ScreenCaptureKit can
