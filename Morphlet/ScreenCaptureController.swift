@@ -42,6 +42,16 @@ final class ScreenCaptureController: NSObject, ObservableObject {
         }
     }
 
+    /// Re-reads the current Screen Recording state without prompting.
+    ///
+    /// The grant can change while the app runs — the user can flip it in
+    /// System Settings at any time — and a process that only asked once at
+    /// launch would keep showing "allow this" long after it had been allowed.
+    /// Preflight never prompts, so this is safe to call whenever the menu opens.
+    func refreshPermission() {
+        permissionDenied = !CGPreflightScreenCaptureAccess()
+    }
+
     /// Opens System Settings at Privacy & Security → Screen Recording.
     func openScreenRecordingSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else { return }

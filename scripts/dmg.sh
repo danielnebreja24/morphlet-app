@@ -41,10 +41,24 @@ INSTALL_X=600; INSTALL_Y=74
 # That rule does not reference the binary, so it survives rebuilds. It does
 # NOT make Gatekeeper accept the app — only notarization does that — it just
 # stops the app changing identity every release.
-echo "==> Building Release, signed with the local certificate"
-xcodebuild -project Morphlet.xcodeproj -target Morphlet \
-  -configuration Release -sdk macosx \
-  build | tail -1
+# scripts/release.sh sets SIGN_IDENTITY to a Developer ID so the very same
+# disk image can be notarized. Unset, this builds with the project's local
+# certificate, which is fine for testing but is refused on any other Mac.
+SIGN_IDENTITY="${SIGN_IDENTITY:-}"
+if [ -n "$SIGN_IDENTITY" ]; then
+  echo "==> Building Release, signed with: $SIGN_IDENTITY"
+  xcodebuild -project Morphlet.xcodeproj -target Morphlet \
+    -configuration Release -sdk macosx \
+    CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+    DEVELOPMENT_TEAM="${TEAM_ID:-}" \
+    OTHER_CODE_SIGN_FLAGS="--timestamp --options=runtime" \
+    build | tail -1
+else
+  echo "==> Building Release, signed with the local certificate"
+  xcodebuild -project Morphlet.xcodeproj -target Morphlet \
+    -configuration Release -sdk macosx \
+    build | tail -1
+fi
 
 echo "==> Verifying the app before it goes in the image"
 codesign --verify --strict --verbose=2 "$APP"
@@ -177,6 +191,10 @@ SIZE=$(du -h "$DMG" | cut -f1)
 echo
 echo "Done: $DMG ($SIZE)"
 echo
-echo "Still unsigned by Apple: users get the 'cannot be verified' dialog and"
-echo "must approve Morphlet in System Settings. Put those steps on the download"
-echo "page as well as in INSTALL.txt."
+if [ -n "$SIGN_IDENTITY" ]; then
+  echo "Signed for distribution, but NOT yet notarized — run this through"
+  echo "scripts/release.sh, which is what submits and staples it."
+else
+  echo "Signed with the local certificate only: Gatekeeper refuses this on any"
+  echo "other Mac. scripts/release.sh builds the copy people can actually open."
+fi

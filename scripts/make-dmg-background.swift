@@ -23,8 +23,18 @@ import AppKit
 import CoreGraphics
 import Foundation
 
+/// The window the layout is designed for. Every coordinate below lives here.
 let W: CGFloat = 660
 let H: CGFloat = 480
+
+/// The canvas actually painted. Finder anchors the background top-left and
+/// does not always honour the saved window size - it can open the window
+/// wider or taller than 660x480. Anything past the edge of the image then
+/// shows as bright white, which looks broken. Painting the same dark colour
+/// well past the design area means any extra space simply continues the
+/// background.
+let CANVAS_W: CGFloat = 1200
+let CANVAS_H: CGFloat = 900
 
 // Pulled from the app icon so the window feels like part of the product.
 let bg = CGColor(srgbRed: 0.055, green: 0.067, blue: 0.098, alpha: 1)
@@ -37,10 +47,12 @@ let warn = CGColor(srgbRed: 0.95, green: 0.72, blue: 0.36, alpha: 1)
 /// Finder positions icons in y-down coordinates; Core Graphics draws y-up.
 /// Everything below is written y-down and converted here, so the numbers match
 /// the ones in dmg.sh directly.
-func cgY(_ yDown: CGFloat) -> CGFloat { H - yDown }
+// Core Graphics is y-up from the canvas bottom, so measure from the canvas
+// height: that keeps the design pinned to the top-left, where Finder anchors it.
+func cgY(_ yDown: CGFloat) -> CGFloat { CANVAS_H - yDown }
 
 func draw(scale: CGFloat, to url: URL) {
-    let pw = Int(W * scale), ph = Int(H * scale)
+    let pw = Int(CANVAS_W * scale), ph = Int(CANVAS_H * scale)
     guard let ctx = CGContext(data: nil, width: pw, height: ph, bitsPerComponent: 8,
                               bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
                               bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
@@ -49,7 +61,7 @@ func draw(scale: CGFloat, to url: URL) {
     ctx.scaleBy(x: scale, y: scale)
 
     ctx.setFillColor(bg)
-    ctx.fill(CGRect(x: 0, y: 0, width: W, height: H))
+    ctx.fill(CGRect(x: 0, y: 0, width: CANVAS_W, height: CANVAS_H))
 
     func text(_ s: String, size: CGFloat, weight: NSFont.Weight, color: CGColor,
               yDown: CGFloat, x: CGFloat? = nil) {
@@ -66,7 +78,7 @@ func draw(scale: CGFloat, to url: URL) {
     }
 
     // Arrow on the icon row, pointing from the app at the Applications alias.
-    let rowY = cgY(178)
+    let rowY = cgY(196)
     ctx.setStrokeColor(accent)
     ctx.setLineWidth(2)
     ctx.setLineCap(.round)
@@ -79,32 +91,25 @@ func draw(scale: CGFloat, to url: URL) {
     ctx.addLine(to: CGPoint(x: 374, y: rowY - 9))
     ctx.strokePath()
 
-    text("Install Morphlet", size: 20, weight: .medium, color: headline, yDown: 46)
-    text("Four steps. The third one is the awkward one.",
-         size: 12, weight: .regular, color: muted, yDown: 68)
+    text("Install Morphlet", size: 20, weight: .medium, color: headline, yDown: 52)
+    text("Drag it across, then open it. That is the whole thing.",
+         size: 13, weight: .regular, color: muted, yDown: 76)
 
     ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.10))
     ctx.setLineWidth(1)
-    ctx.move(to: CGPoint(x: 62, y: cgY(258)))
-    ctx.addLine(to: CGPoint(x: 598, y: cgY(258)))
+    ctx.move(to: CGPoint(x: 62, y: cgY(300)))
+    ctx.addLine(to: CGPoint(x: 598, y: cgY(300)))
     ctx.strokePath()
 
     let left: CGFloat = 62
-    text("1.   Drag Morphlet onto the Applications folder above",
-         size: 13, weight: .regular, color: body, yDown: 292, x: left)
-    text("2.   Open Morphlet — from Applications, or press \u{2318}Space and search for it.",
-         size: 13, weight: .regular, color: body, yDown: 320, x: left)
-    text("      macOS will refuse the first time. Click Done — do NOT move it to Trash.",
-         size: 13, weight: .medium, color: warn, yDown: 342, x: left)
-    text("3.   Open System Settings ▸ Privacy & Security, scroll to the bottom,",
-         size: 13, weight: .regular, color: body, yDown: 372, x: left)
-    text("      and click \"Open Anyway\" next to Morphlet. Confirm.",
-         size: 13, weight: .regular, color: body, yDown: 394, x: left)
-    text("4.   Allow Screen Recording when asked, then open Morphlet again.",
-         size: 13, weight: .regular, color: body, yDown: 424, x: left)
-
-    text("Morphlet has no Dock icon — look for it in the menu bar.",
-         size: 12, weight: .regular, color: muted, yDown: 452, x: left)
+    text("Morphlet lives in the menu bar — it has no Dock icon.",
+         size: 13, weight: .regular, color: body, yDown: 336, x: left)
+    text("It will ask to record your screen. That is how the fold works: it",
+         size: 13, weight: .regular, color: body, yDown: 362, x: left)
+    text("mirrors your desktop while the lid closes. Nothing is saved or sent.",
+         size: 13, weight: .regular, color: body, yDown: 384, x: left)
+    text("Signed and notarized by Apple.",
+         size: 12, weight: .regular, color: muted, yDown: 424, x: left)
 
     guard let image = ctx.makeImage(),
           let dest = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil) else {

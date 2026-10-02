@@ -22,6 +22,8 @@ final class AppCoordinator: ObservableObject {
     let loginItem = LoginItem()
     let capture: ScreenCaptureController
     let overlay: OverlayWindowController
+    let welcome = WelcomeState()
+    private let welcomeWindow = WelcomeWindowController()
 
     private var cancellables = Set<AnyCancellable>()
     /// Whether capture has been started and the overlay shown for this pass.
@@ -39,6 +41,21 @@ final class AppCoordinator: ObservableObject {
         wire()
         sensor.start()
         capture.requestAccessIfNeeded()
+        // First run only: an accessory app launching looks identical to
+        // nothing happening, so say plainly that it worked and where to look.
+        //
+        // Deferred, and it must stay deferred. This initializer runs while
+        // SwiftUI is still evaluating the app's scenes. Building and showing an
+        // NSHostingView synchronously here starts a second view-graph update
+        // inside the first, and SwiftUI aborts the process
+        // (AG::precondition_failure in NSHostingView.layout) before anything
+        // reaches the screen. Hopping to the next main-queue turn lets the
+        // first update finish.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.welcomeWindow.presentIfNeeded(
+                welcome: self.welcome, capture: self.capture, sensor: self.sensor)
+        }
     }
 
     private func wire() {
@@ -202,7 +219,10 @@ private struct MenuBarContent: View {
                     capture.requestAccessIfNeeded()
                     capture.openScreenRecordingSettings()
                 } label: {
-                    Label("Allow Screen Recording in Settings…", systemImage: "video.slash")
+                    Label(
+                        "Allow Screen Recording, then reopen Morphlet",
+                        systemImage: "video.slash"
+                    )
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
@@ -234,10 +254,14 @@ private struct MenuBarContent: View {
         }
         .padding(12)
         .frame(width: 260)
-        // The user can change the login item in System Settings while the app
-        // runs, so re-read it each time the menu opens rather than trusting
-        // whatever we last saw.
-        .onAppear { loginItem.refresh() }
+        // Both of these can change in System Settings while the app runs, so
+        // re-read them each time the menu opens rather than trusting whatever
+        // we last saw. Without the capture refresh the menu keeps telling you
+        // to allow Screen Recording after you already have.
+        .onAppear {
+            loginItem.refresh()
+            capture.refreshPermission()
+        }
     }
 
     private var loginItemBinding: Binding<Bool> {
