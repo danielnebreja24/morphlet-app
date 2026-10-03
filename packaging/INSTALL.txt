@@ -4,7 +4,9 @@ Morphlet — installation
 1. Drag Morphlet into your Applications folder.
 
 2. Open it. Double-click it in Applications, or press Command-Space, type
-   "Morphlet" and hit Return.
+   "Morphlet" and hit Return. The first time, macOS asks whether to open an
+   app from the internet and notes that Apple checked it for malicious
+   software. Click Open. It only asks once.
 
 3. Allow Screen Recording when macOS asks. Morphlet needs this because the
    fold effect is a live mirror of your desktop — there is no way to bend what
@@ -31,8 +33,8 @@ whether the effect is switched on.
 Capture only runs while the lid is on its way down. With the lid open past the
 trigger angle, no capture is running at all.
 
-Morphlet is signed with an Apple Developer ID and notarized by Apple, which is
-what lets it open without a security warning.
+Morphlet is signed with an Apple Developer ID and notarized by Apple. That is
+why macOS asks you to confirm once, rather than blocking it outright.
 
 
 Requirements

@@ -311,6 +311,10 @@ private struct SettingsView: View {
                 Text("Effect ramps from 0% at the start angle to 100% at the closed angle as the lid comes down.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    // A Form row lays text out on one line and truncates it
+                    // ("…at the clo…"). Let it wrap to its full height instead.
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(28)
