@@ -91,8 +91,10 @@ Xcode directly:
   Morphlet from Spotlight or Finder.
 
 Releases are signed with an Apple Developer ID and notarized, so a downloaded
-build opens with no security warning. A copy you build yourself is signed with
-a local certificate instead: fine on your own machine, refused anywhere else.
+build opens after macOS's one-time "Apple checked it for malicious software"
+confirmation, with no trip to System Settings. A copy you build yourself is
+signed with a local certificate instead: fine on your own machine, refused
+anywhere else.
 
 ## Using it
 
@@ -157,3 +159,11 @@ file under `Morphlet/` needs no project-file edit.
 A Windows version is planned but deferred. Most Windows laptops expose only an
 open/closed switch rather than a hinge angle, so the first step there is finding
 out whether the target hardware reports an angle at all.
+
+## License
+
+Copyright (C) 2026 Daniel Nebreja
+
+Morphlet is free software: you can redistribute it and/or modify it under the
+terms of the [GNU General Public License v3.0](LICENSE). Anyone who distributes
+a modified version must make its source available under the same licence.
