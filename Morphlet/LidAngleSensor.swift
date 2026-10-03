@@ -16,7 +16,13 @@
 //  bridging header. If the device isn't present or a read fails, we degrade
 //  to a coarse open/closed signal from IORegistry's AppleClamshellState.
 //
+//  That degraded mode is a stopgap, not a verdict: the sensor goes away for a
+//  moment around sleep and wake, and while it is gone the app is on the
+//  fallback. The fallback therefore keeps retrying the real sensor, and the
+//  sensor is reopened after every wake, so the app heals without a relaunch.
+//
 
+import AppKit
 import Foundation
 import IOKit
 import IOKit.hid
@@ -39,8 +45,15 @@ final class LidAngleSensor: ObservableObject {
     private let pollQueue = DispatchQueue(label: "com.morphlet.lidangle.poll")
     private var consecutiveFailures = 0
 
+    /// How often the fallback tries the real sensor again, in fallback ticks
+    /// (the fallback polls at 5 Hz, so 10 ticks is every two seconds).
+    private let recoveryInterval = 10
+    private var fallbackTicks = 0
+    private var wakeObserver: NSObjectProtocol?
+
     func start() {
         guard pollTimer == nil else { return }
+        observeWake()
         if openSensor() {
             isAvailable = true
             startTimer(hz: 30) { [weak self] in self?.pollFeatureReport() }
@@ -48,7 +61,7 @@ final class LidAngleSensor: ObservableObject {
         } else {
             isAvailable = false
             print("[LidAngle] precise sensor unavailable; falling back to AppleClamshellState")
-            startTimer(hz: 5) { [weak self] in self?.pollClamshellFallback() }
+            startFallback()
         }
     }
 
@@ -61,6 +74,48 @@ final class LidAngleSensor: ObservableObject {
         device = nil
         manager = nil
         consecutiveFailures = 0
+    }
+
+    // MARK: - Recovery
+
+    /// The sensor's HID device is torn down and rebuilt around sleep, which
+    /// leaves the handle we opened before sleeping pointing at nothing. Open it
+    /// again once the system has had a moment to bring it back.
+    private func observeWake() {
+        guard wakeObserver == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self?.restart()
+            }
+        }
+    }
+
+    private func restart() {
+        print("[LidAngle] woke from sleep; reopening the sensor")
+        stop()
+        start()
+    }
+
+    private func startFallback() {
+        fallbackTicks = 0
+        startTimer(hz: 5) { [weak self] in
+            DispatchQueue.main.async { self?.fallbackTick() }
+        }
+    }
+
+    private func fallbackTick() {
+        pollClamshellFallback()
+        fallbackTicks += 1
+        guard fallbackTicks % recoveryInterval == 0, !isAvailable else { return }
+        guard openSensor() else { return }
+        pollTimer?.cancel()
+        pollTimer = nil
+        consecutiveFailures = 0
+        isAvailable = true
+        startTimer(hz: 30) { [weak self] in self?.pollFeatureReport() }
+        print("[LidAngle] precise sensor is back")
     }
 
     // MARK: - Precise sensor (HID feature report)
@@ -122,6 +177,10 @@ final class LidAngleSensor: ObservableObject {
         guard consecutiveFailures > 15 else { return }
         consecutiveFailures = 0
         print("[LidAngle] precise sensor stopped responding; switching to fallback")
+        DispatchQueue.main.async { [weak self] in self?.dropToFallback() }
+    }
+
+    private func dropToFallback() {
         pollTimer?.cancel()
         pollTimer = nil
         if let manager {
@@ -129,9 +188,14 @@ final class LidAngleSensor: ObservableObject {
         }
         device = nil
         manager = nil
-        DispatchQueue.main.async { [weak self] in self?.isAvailable = false }
-        startTimer(hz: 5) { [weak self] in self?.pollClamshellFallback() }
+        isAvailable = false
+        startFallback()
     }
+
+    #if DEBUG
+    /// Test seam: lands in exactly the state a run of failed reads does.
+    func debugDropToFallback() { dropToFallback() }
+    #endif
 
     // MARK: - Timer plumbing
 
