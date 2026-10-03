@@ -23,11 +23,17 @@ LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchSe
 # Window and icon geometry. These must agree with packaging/dmg-background.png
 # — the arrow in the artwork is drawn on the row the two icons sit on.
 WIN_W=660; WIN_H=480
-ICON_SIZE=112
-APP_X=196;     APP_Y=178
-APPS_X=462;    APPS_Y=178
-# Reference material, tucked into the top right and out of the flow.
-INSTALL_X=600; INSTALL_Y=74
+# Finder's window bounds include the title bar, so asking for 480 gave a
+# content area ~452 tall: the bottom of the layout spilled out of view and
+# Finder put a scrollbar on the window. The bounds below add it back.
+TITLEBAR=28
+# 96, not 112: Finder pads every icon's cell, and at 112 the cells spilled
+# past the window edge and put a scrollbar on it.
+ICON_SIZE=96
+APP_X=190;     APP_Y=186
+APPS_X=470;    APPS_Y=186
+# Reference material, bottom right beside the notes and clear of the window edge.
+INSTALL_X=540; INSTALL_Y=360
 
 # Signed with the local self-signed "LidGlass" certificate, NOT ad-hoc.
 # Ad-hoc signing leaves the designated requirement empty, so macOS identifies
@@ -66,7 +72,9 @@ codesign --verify --strict --verbose=2 "$APP"
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")
 VOLNAME="Morphlet $VERSION"
 STAGE="$DIST/dmg-stage"
-DMG="$DIST/Morphlet-$VERSION.dmg"
+# DMG_OUT lets a test build go somewhere other than the release file, so a
+# layout check can never overwrite a notarized image sitting in dist/.
+DMG="${DMG_OUT:-$DIST/Morphlet-$VERSION.dmg}"
 RW="$DIST/Morphlet-$VERSION-rw.dmg"
 
 rm -rf "$STAGE"; mkdir -p "$STAGE/.background"
@@ -120,7 +128,7 @@ tell application "Finder"
     set current view of container window to icon view
     set toolbar visible of container window to false
     set statusbar visible of container window to false
-    set the bounds of container window to {200, 120, $((200 + WIN_W)), $((120 + WIN_H))}
+    set the bounds of container window to {200, 120, $((200 + WIN_W)), $((120 + WIN_H + TITLEBAR))}
     set opts to the icon view options of container window
     set arrangement of opts to not arranged
     set icon size of opts to $ICON_SIZE

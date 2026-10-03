@@ -37,11 +37,15 @@ let CANVAS_W: CGFloat = 1200
 let CANVAS_H: CGFloat = 900
 
 // Pulled from the app icon so the window feels like part of the product.
-let bg = CGColor(srgbRed: 0.055, green: 0.067, blue: 0.098, alpha: 1)
-let headline = CGColor(srgbRed: 0.92, green: 0.94, blue: 0.97, alpha: 1)
-let body = CGColor(srgbRed: 0.72, green: 0.77, blue: 0.85, alpha: 1)
-let muted = CGColor(srgbRed: 0.45, green: 0.50, blue: 0.60, alpha: 1)
-let accent = CGColor(srgbRed: 0.36, green: 0.60, blue: 0.90, alpha: 1)
+// Light on purpose. Finder draws icon labels in black on a window with a
+// background picture, whatever the system appearance (verified in Dark mode),
+// and there is no setting for the label colour. On the old dark navy ground
+// "Morphlet" and "Applications" were black on black: invisible to everyone.
+let bg = CGColor(srgbRed: 0.961, green: 0.957, blue: 0.945, alpha: 1)        // warm paper
+let headline = CGColor(srgbRed: 0.086, green: 0.094, blue: 0.106, alpha: 1)  // ink
+let body = CGColor(srgbRed: 0.24, green: 0.26, blue: 0.30, alpha: 1)
+let muted = CGColor(srgbRed: 0.42, green: 0.45, blue: 0.50, alpha: 1)
+let accent = CGColor(srgbRed: 0.357, green: 0.608, blue: 0.961, alpha: 1)    // logo blue
 let warn = CGColor(srgbRed: 0.95, green: 0.72, blue: 0.36, alpha: 1)
 
 /// Finder positions icons in y-down coordinates; Core Graphics draws y-up.
@@ -78,24 +82,24 @@ func draw(scale: CGFloat, to url: URL) {
     }
 
     // Arrow on the icon row, pointing from the app at the Applications alias.
-    let rowY = cgY(196)
+    let rowY = cgY(186)
     ctx.setStrokeColor(accent)
     ctx.setLineWidth(2)
     ctx.setLineCap(.round)
     ctx.setLineJoin(.round)
-    ctx.move(to: CGPoint(x: 272, y: rowY))
-    ctx.addLine(to: CGPoint(x: 386, y: rowY))
+    ctx.move(to: CGPoint(x: 264, y: rowY))
+    ctx.addLine(to: CGPoint(x: 394, y: rowY))
     ctx.strokePath()
-    ctx.move(to: CGPoint(x: 374, y: rowY + 9))
-    ctx.addLine(to: CGPoint(x: 388, y: rowY))
-    ctx.addLine(to: CGPoint(x: 374, y: rowY - 9))
+    ctx.move(to: CGPoint(x: 382, y: rowY + 9))
+    ctx.addLine(to: CGPoint(x: 396, y: rowY))
+    ctx.addLine(to: CGPoint(x: 382, y: rowY - 9))
     ctx.strokePath()
 
     text("Install Morphlet", size: 20, weight: .medium, color: headline, yDown: 52)
     text("Drag it across, then open it. That is the whole thing.",
          size: 13, weight: .regular, color: muted, yDown: 76)
 
-    ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.10))
+    ctx.setStrokeColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.10))
     ctx.setLineWidth(1)
     ctx.move(to: CGPoint(x: 62, y: cgY(300)))
     ctx.addLine(to: CGPoint(x: 598, y: cgY(300)))
